@@ -1,0 +1,19 @@
+# Môi trường ảo của Python
+.venv/
+venv/
+
+# File biến môi trường (CỰC KỲ QUAN TRỌNG)
+.env
+
+# Cache của Python
+__pycache__/
+*.pyc
+*.pyo
+
+# File database SQLite
+*.db
+*.sqlite3
+
+# Thư mục của các IDE
+.idea/
+.vscode/
