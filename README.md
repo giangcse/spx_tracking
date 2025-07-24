@@ -56,8 +56,8 @@ Làm theo các bước sau để khởi chạy bot trên máy của bạn hoặc
 
 1.  **Clone repository về máy:**
     ```bash
-    git clone [https://github.com/giangcse/spx_tracking.git](https://github.com/giangcse/spx_tracking.git)
-    cd ten_repo_cua_ban
+    git clone https://github.com/giangcse/spx_tracking
+    cd spx_tracking
     ```
 
 2.  **Tạo và kích hoạt môi trường ảo** (khuyến khích):
