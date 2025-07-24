@@ -56,7 +56,7 @@ Làm theo các bước sau để khởi chạy bot trên máy của bạn hoặc
 
 1.  **Clone repository về máy:**
     ```bash
-    git clone [https://github.com/ten_github_cua_ban/ten_repo_cua_ban.git](https://github.com/ten_github_cua_ban/ten_repo_cua_ban.git)
+    git clone [https://github.com/giangcse/spx_tracking.git](https://github.com/giangcse/spx_tracking.git)
     cd ten_repo_cua_ban
     ```
 
@@ -79,10 +79,10 @@ Làm theo các bước sau để khởi chạy bot trên máy của bạn hoặc
     *(Nếu bạn chưa có file `requirements.txt`, hãy tạo nó với nội dung bên dưới)*
 
 4.  **Cấu hình Bot Token:**
-    * Mở file `config.py`.
+    * Tạo file `.env`.
     * Dán **Bot Token** của bạn vào biến `BOT_TOKEN`.
         ```python
-        # config.py
+        # .env
         BOT_TOKEN = "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" # Thay bằng token của bạn
         ```
 
