@@ -1,18 +1,13 @@
 [Unit]
-Description=SPX Tracking Telegram Bot
+Description=Telegram Bot for SPX Tracking
 After=network.target
 
 [Service]
-# Thay "pi" bằng username bạn dùng để chạy bot
 User=pi
 Group=pi
-
-# Thay "/home/pi/spx_tracking" bằng đường dẫn tuyệt đối đến thư mục dự án
 WorkingDirectory=/home/pi/spx_tracking
-ExecStart=/usr/bin/python3 main.py
-
-Restart=on-failure
-RestartSec=5s
+ExecStart=/usr/bin/python3 /home/pi/spx_tracking/main.py
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
