@@ -1,0 +1,24 @@
+# docker-compose.yml
+
+version: '3.8'
+
+services:
+  spx-bot:
+    # Build image từ Dockerfile trong thư mục hiện tại
+    build: .
+    
+    # Đặt tên cho container để dễ quản lý
+    container_name: spx_tracking_bot
+    
+    # Đọc các biến môi trường từ file .env
+    # Điều này giúp giữ an toàn cho BOT_TOKEN
+    env_file:
+      - .env
+      
+    # Ánh xạ (mount) file database từ máy thật vào container
+    # Giúp dữ liệu được lưu lại ngay cả khi container bị xóa và tạo lại
+    volumes:
+      - ./spx_tracking_data.db:/app/spx_tracking_data.db
+      
+    # Tự động khởi động lại container nếu nó bị dừng (ví dụ: do lỗi)
+    restart: unless-stopped
