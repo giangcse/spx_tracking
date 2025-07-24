@@ -122,6 +122,92 @@ spx\_tracker\_bot/
 
 ---
 
+## ⚙️ Chạy bot như một Service trên Linux (Production)
+
+Để đảm bảo bot hoạt động 24/7 và tự động khởi động lại khi server reboot, bạn nên chạy nó như một service của `systemd`.
+
+### **1. Tạo file Service**
+
+Tạo một file service mới bằng trình soạn thảo yêu thích của bạn (ví dụ: `nano`):
+
+```bash
+sudo nano /etc/systemd/system/spx_bot.service
+````
+
+### **2. Dán nội dung vào file Service**
+
+Dán toàn bộ nội dung dưới đây vào file bạn vừa tạo.
+
+**Lưu ý:** Bạn cần thay đổi `your_username` và `/path/to/your/project` cho phù hợp với hệ thống của bạn.
+
+```ini
+[Unit]
+Description=SPX Tracking Telegram Bot
+After=network.target
+
+[Service]
+# Thay "your_username" bằng username bạn dùng để chạy bot
+User=your_username
+Group=your_username
+
+# Thay "/path/to/your/project" bằng đường dẫn tuyệt đối đến thư mục dự án
+WorkingDirectory=/path/to/your/project
+ExecStart=/path/to/your/project/.venv/bin/python main.py
+
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Cách tìm đường dẫn chính xác:**
+
+  * Để tìm `WorkingDirectory`, đi tới thư mục dự án và gõ lệnh `pwd`.
+  * Để tìm `ExecStart`, đi tới thư mục dự án, kích hoạt môi trường ảo (`source .venv/bin/activate`) và gõ lệnh `which python`.
+
+### **3. Quản lý Service**
+
+Sau khi đã lưu file, hãy sử dụng các lệnh sau để quản lý service của bạn:
+
+1.  **Tải lại `systemd` để nhận diện service mới:**
+
+    ```bash
+    sudo systemctl daemon-reload
+    ```
+
+2.  **Kích hoạt service để tự chạy khi khởi động:**
+
+    ```bash
+    sudo systemctl enable spx_bot.service
+    ```
+
+3.  **Bắt đầu service ngay lập tức:**
+
+    ```bash
+    sudo systemctl start spx_bot.service
+    ```
+
+4.  **Kiểm tra trạng thái của service:**
+
+    ```bash
+    sudo systemctl status spx_bot.service
+    ```
+
+    (Nhấn `q` để thoát)
+
+5.  **Xem logs (nhật ký) của bot:**
+    Lệnh này rất hữu ích để debug lỗi.
+
+    ```bash
+    journalctl -u spx_bot -f
+    ```
+
+    (Nhấn `Ctrl + C` để thoát)
+
+Bây giờ bot của bạn đã chạy như một tiến trình nền ổn định trên server.
+---
+
 ## 📄 Giấy phép
 
 Dự án này được cấp phép theo **MIT License**. Xem file `LICENSE` để biết thêm chi tiết.
