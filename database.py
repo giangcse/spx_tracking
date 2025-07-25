@@ -7,7 +7,6 @@ def get_db_connection():
     """Tạo và trả về một kết nối đến database."""
     try:
         conn = sqlite3.connect(config.DB_NAME, check_same_thread=False)
-        # Giúp truy cập các cột bằng tên, ví dụ: row['chat_id']
         conn.row_factory = sqlite3.Row
         return conn
     except sqlite3.Error as e:
@@ -15,28 +14,37 @@ def get_db_connection():
         return None
 
 def setup_database(conn):
-    """Tạo bảng tracked_orders nếu nó chưa tồn tại."""
+    """Tạo hoặc cập nhật bảng tracked_orders nếu cần."""
     try:
         cursor = conn.cursor()
+        # Sửa đổi bảng để thêm cột last_status_description
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS tracked_orders (
                 chat_id INTEGER NOT NULL,
                 tracking_code TEXT NOT NULL,
                 last_update_time INTEGER DEFAULT 0,
+                last_status_description TEXT, 
                 PRIMARY KEY (chat_id, tracking_code)
             )
         ''')
+        
+        # Thêm cột mới nếu chưa có (để tương thích với database cũ)
+        cursor.execute("PRAGMA table_info(tracked_orders)")
+        columns = [column['name'] for column in cursor.fetchall()]
+        if 'last_status_description' not in columns:
+            cursor.execute("ALTER TABLE tracked_orders ADD COLUMN last_status_description TEXT")
+
         conn.commit()
         print("Database đã được thiết lập thành công.")
     except sqlite3.Error as e:
         print(f"Lỗi thiết lập database: {e}")
 
-def add_tracked_order(conn, chat_id, tracking_code, last_update_time):
+def add_tracked_order(conn, chat_id, tracking_code, last_update_time, last_status_description):
     """Thêm một mã vận đơn vào danh sách theo dõi."""
-    sql = "INSERT INTO tracked_orders (chat_id, tracking_code, last_update_time) VALUES (?, ?, ?)"
+    sql = "INSERT INTO tracked_orders (chat_id, tracking_code, last_update_time, last_status_description) VALUES (?, ?, ?, ?)"
     try:
         cursor = conn.cursor()
-        cursor.execute(sql, (chat_id, tracking_code, last_update_time))
+        cursor.execute(sql, (chat_id, tracking_code, last_update_time, last_status_description))
         conn.commit()
         return True
     except sqlite3.Error as e:
@@ -70,17 +78,17 @@ def get_user_tracked_orders(conn, chat_id):
 def get_all_tracked_orders(conn):
     """Lấy tất cả các đơn hàng từ tất cả người dùng để kiểm tra cập nhật."""
     cursor = conn.cursor()
-    cursor.execute("SELECT chat_id, tracking_code, last_update_time FROM tracked_orders")
+    cursor.execute("SELECT chat_id, tracking_code, last_update_time, last_status_description FROM tracked_orders")
     return cursor.fetchall()
 
-def update_order_time(conn, chat_id, tracking_code, new_update_time):
-    """Cập nhật thời gian trạng thái mới nhất cho một đơn hàng."""
-    sql = "UPDATE tracked_orders SET last_update_time = ? WHERE chat_id = ? AND tracking_code = ?"
+def update_order_status(conn, chat_id, tracking_code, new_time, new_description):
+    """Cập nhật trạng thái mới nhất cho một đơn hàng."""
+    sql = "UPDATE tracked_orders SET last_update_time = ?, last_status_description = ? WHERE chat_id = ? AND tracking_code = ?"
     try:
         cursor = conn.cursor()
-        cursor.execute(sql, (new_update_time, chat_id, tracking_code))
+        cursor.execute(sql, (new_time, new_description, chat_id, tracking_code))
         conn.commit()
         return True
     except sqlite3.Error as e:
-        print(f"Lỗi cập nhật thời gian đơn hàng: {e}")
+        print(f"Lỗi cập nhật trạng thái đơn hàng: {e}")
         return False
