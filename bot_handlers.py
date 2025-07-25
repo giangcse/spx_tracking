@@ -136,33 +136,46 @@ async def history(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def check_for_updates(context: ContextTypes.DEFAULT_TYPE) -> None:
     """Công việc chạy nền để kiểm tra tất cả các đơn hàng."""
-    conn = context.bot_data['db_connection']
-    all_orders = db.get_all_tracked_orders(conn)
-    
-    logger.info(f"Đang chạy tác vụ kiểm tra định kỳ cho {len(all_orders)} đơn hàng.")
+    conn = db.get_db_connection()
+    if not conn:
+        logger.error("check_for_updates: Không thể kết nối đến database.")
+        return
+    # =================================================================
 
-    for order in all_orders:
-        chat_id, tracking_code, last_update_time = order['chat_id'], order['tracking_code'], order['last_update_time']
+    try:
+        all_orders = db.get_all_tracked_orders(conn)
         
-        data = spx_service.fetch_spx_data(tracking_code)
-        if not data or data.get("retcode") != 0 or not data.get("data"): continue
-        records = data["data"]["sls_tracking_info"]["records"]
-        if not records: continue
+        logger.info(f"Đang chạy tác vụ kiểm tra định kỳ cho {len(all_orders)} đơn hàng.")
 
-        latest_record = records[0]
-        new_update_time = latest_record.get('actual_time')
+        for order in all_orders:
+            chat_id, tracking_code, last_update_time = order['chat_id'], order['tracking_code'], order['last_update_time']
+            
+            data = spx_service.fetch_spx_data(tracking_code)
+            if not data or data.get("retcode") != 0 or not data.get("data"): continue
+            records = data["data"]["sls_tracking_info"]["records"]
+            if not records: continue
 
-        if new_update_time and new_update_time > last_update_time:
-            logger.info(f"Phát hiện cập nhật cho mã {tracking_code} của chat_id {chat_id}")
-            message = spx_service.format_status_message(tracking_code, latest_record)
-            try:
-                await context.bot.send_message(chat_id=chat_id, text=message, parse_mode=ParseMode.MARKDOWN_V2)
-                db.update_order_time(conn, chat_id, tracking_code, new_update_time)
+            latest_record = records[0]
+            new_update_time = latest_record.get('actual_time')
 
-                # Nếu là trạng thái cuối cùng, thông báo và tự untrack
-                if latest_record.get("milestone_code") == 8: # 8 = "Delivered"
-                    await context.bot.send_message(chat_id=chat_id, text=f"🎉 Đơn hàng `{spx_service.escape_md(tracking_code)}` đã giao thành công và được tự động xóa khỏi danh sách theo dõi\.", parse_mode=ParseMode.MARKDOWN_V2)
-                    db.remove_tracked_order(conn, chat_id, tracking_code)
+            if new_update_time and new_update_time > last_update_time:
+                logger.info(f"Phát hiện cập nhật cho mã {tracking_code} của chat_id {chat_id}")
+                message = spx_service.format_status_message(tracking_code, latest_record)
+                try:
+                    await context.bot.send_message(chat_id=chat_id, text=message, parse_mode=ParseMode.MARKDOWN_V2)
+                    
+                    # Cập nhật thời gian mới vào DB qua kết nối riêng của tác vụ này
+                    db.update_order_time(conn, chat_id, tracking_code, new_update_time)
 
-            except Exception as e:
-                logger.error(f"Lỗi gửi tin nhắn đến {chat_id}: {e}")
+                    # Nếu là trạng thái cuối cùng, thông báo và tự untrack
+                    if latest_record.get("milestone_code") == 8: # 8 = "Delivered"
+                        await context.bot.send_message(chat_id=chat_id, text=f"🎉 Đơn hàng `{spx_service.escape_md(tracking_code)}` đã giao thành công và được tự động xóa khỏi danh sách theo dõi\.", parse_mode=ParseMode.MARKDOWN_V2)
+                        db.remove_tracked_order(conn, chat_id, tracking_code)
+
+                except Exception as e:
+                    logger.error(f"Lỗi gửi tin nhắn đến {chat_id}: {e}")
+    finally:
+        # === SỬA LỖI: Luôn đóng kết nối sau khi hoàn thành tác vụ ===
+        if conn:
+            conn.close()
+        # ========================================================
